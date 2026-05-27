@@ -14,13 +14,10 @@
       --accent: #d89a45;
       --accent2: #f0b765;
       --border: #343c42;
-      --danger: #ff7979;
       --good: #8ee59e;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -37,10 +34,7 @@
       padding: 28px 16px;
     }
 
-    .wrap {
-      width: 100%;
-      max-width: 920px;
-    }
+    .wrap { width: 100%; max-width: 920px; }
 
     .card {
       background: linear-gradient(180deg, rgba(27,34,39,0.98), rgba(14,18,21,0.98));
@@ -69,9 +63,7 @@
       gap: 16px;
     }
 
-    .full {
-      grid-column: 1 / -1;
-    }
+    .full { grid-column: 1 / -1; }
 
     label {
       display: block;
@@ -80,9 +72,7 @@
       color: #fff7e7;
     }
 
-    input,
-    select,
-    textarea {
+    input, select, textarea {
       width: 100%;
       border: 1px solid var(--border);
       border-radius: 14px;
@@ -93,15 +83,13 @@
       outline: none;
     }
 
-    input:focus,
-    select:focus,
-    textarea:focus {
+    input:focus, select:focus, textarea:focus {
       border-color: var(--accent);
       box-shadow: 0 0 0 3px rgba(216,154,69,0.18);
     }
 
     textarea {
-      min-height: 120px;
+      min-height: 125px;
       resize: vertical;
       line-height: 1.55;
     }
@@ -122,7 +110,7 @@
 
     .buttons {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr;
       gap: 12px;
       margin-top: 14px;
     }
@@ -138,9 +126,7 @@
       cursor: pointer;
     }
 
-    button:hover {
-      background: var(--accent2);
-    }
+    button:hover { background: var(--accent2); }
 
     button.secondary {
       background: var(--card2);
@@ -148,9 +134,7 @@
       border: 1px solid var(--border);
     }
 
-    button.secondary:hover {
-      background: #263038;
-    }
+    button.secondary:hover { background: #263038; }
 
     .copyStatus {
       margin-top: 10px;
@@ -171,14 +155,8 @@
     }
 
     @media (max-width: 720px) {
-      .grid,
-      .buttons {
-        grid-template-columns: 1fr;
-      }
-
-      .card {
-        padding: 18px;
-      }
+      .grid, .buttons { grid-template-columns: 1fr; }
+      .card { padding: 18px; }
     }
   </style>
 </head>
@@ -187,7 +165,7 @@
     <section class="card">
       <h1>ARC Raiders Chat-Info Generator</h1>
       <p class="subtitle">
-        Schneller Suchtext für den Zirkel: Minute, Server, Map und besondere Kondition auswählen, Text kopieren, fertig.
+        Schneller Suchtext für den Zirkel. Die kopierte Nachricht beginnt automatisch mit /announceorange.
       </p>
 
       <div class="grid">
@@ -218,11 +196,12 @@
         </div>
 
         <div class="full">
-          <label for="output">Generierter Text</label>
+          <label for="output">Generierter orangefarbener Ankündigungs-Text</label>
           <textarea id="output" readonly></textarea>
 
           <div class="buttons">
-            <button id="copy">Text kopieren</button>
+            <button id="copy">Orange Ankündigung kopieren</button>
+            <button id="openDizzlChat">In Dizzls Chat öffnen</button>
             <button id="reloadConditions" class="secondary">Conditions neu laden</button>
           </div>
 
@@ -231,12 +210,15 @@
       </div>
 
       <div class="notice">
-        Hinweis: Der Live-Abruf der Conditions kann von Browsern oder der offiziellen Seite blockiert werden. Dann nutzt der Generator automatisch eine gespeicherte Ersatzliste.
+        Wichtig: Für eine orangefarbene Twitch-Ankündigung beginnt die Nachricht mit <strong>/announceorange</strong>. Das funktioniert nur, wenn dein Account in Dizzls Kanal die nötigen Rechte dafür hat.
       </div>
     </section>
   </main>
 
   <script>
+    const DIZZL_CHANNEL = "Dizzl";
+    const ANNOUNCE_COMMAND = "/announceorange";
+
     const SERVER_OPTIONS = [
       "Europa",
       "Nordamerika",
@@ -281,6 +263,7 @@
     const conditionSelect = document.getElementById("condition");
     const output = document.getElementById("output");
     const copyButton = document.getElementById("copy");
+    const openDizzlChatButton = document.getElementById("openDizzlChat");
     const reloadButton = document.getElementById("reloadConditions");
     const copyStatus = document.getElementById("copyStatus");
     const conditionStatus = document.getElementById("conditionStatus");
@@ -321,7 +304,6 @@
       }
 
       const matches = options.filter(option => normalize(option).startsWith(typed));
-
       if (matches.length === 1) {
         const match = matches[0];
         input.value = match;
@@ -333,9 +315,13 @@
 
     function setConditions(values, statusText) {
       const unique = [...new Set(values.filter(Boolean))];
-      if (!unique.includes("Nicht")) unique.unshift("Nicht");
+
+      if (!unique.includes("Nicht")) {
+        unique.unshift("Nicht");
+      }
 
       conditionSelect.innerHTML = "";
+
       unique.forEach(value => {
         const option = document.createElement("option");
         option.value = value;
@@ -365,23 +351,33 @@
 
       try {
         const direct = await fetch(CONDITION_PAGE, { cache: "no-store" });
-        if (!direct.ok) throw new Error("Direkter Abruf nicht möglich.");
+
+        if (!direct.ok) {
+          throw new Error("Direkter Abruf nicht möglich.");
+        }
 
         const html = await direct.text();
         const found = extractKnownConditions(html);
 
-        if (found.length <= 1) throw new Error("Keine Conditions gefunden.");
+        if (found.length <= 1) {
+          throw new Error("Keine Conditions gefunden.");
+        }
 
         setConditions(found, "Live-Conditions von arcraiders.com geladen.");
       } catch (errorDirect) {
         try {
           const proxy = await fetch(PROXY_PAGE, { cache: "no-store" });
-          if (!proxy.ok) throw new Error("Proxy-Abruf nicht möglich.");
+
+          if (!proxy.ok) {
+            throw new Error("Proxy-Abruf nicht möglich.");
+          }
 
           const html = await proxy.text();
           const found = extractKnownConditions(html);
 
-          if (found.length <= 1) throw new Error("Keine Conditions gefunden.");
+          if (found.length <= 1) {
+            throw new Error("Keine Conditions gefunden.");
+          }
 
           setConditions(found, "Conditions über Fallback-Abruf geladen.");
         } catch (errorProxy) {
@@ -390,14 +386,33 @@
       }
     }
 
-    function generateText() {
+    function buildPlainMessage() {
       const minute = minuteInput.value.trim() || "[Minute]";
       const server = serverInput.value.trim() || "[Server]";
       const map = mapInput.value.trim() || "[Karte]";
       const condition = conditionSelect.value || "Nicht";
 
-      output.value =
-        `Lieber Zirkel, wir suchen um ${minute} auf dem Server ${server} auf der Map ${map}. Eine besondere Kondition gibt es: ${condition}. Wir freuen uns darauf mit Euch zu raiden.`;
+      return `Lieber Zirkel, wir suchen um ${minute} auf dem Server ${server} auf der Map ${map}. Eine besondere Kondition gibt es: ${condition}. Wir freuen uns darauf mit Euch zu raiden.`;
+    }
+
+    function generateText() {
+      output.value = `${ANNOUNCE_COMMAND} ${buildPlainMessage()}`;
+    }
+
+    async function copyGeneratedText(statusText = "Orange Ankündigung wurde kopiert.") {
+      generateText();
+      const textToCopy = output.value;
+
+      try {
+        await navigator.clipboard.writeText(textToCopy);
+      } catch (error) {
+        output.focus();
+        output.select();
+        document.execCommand("copy");
+      }
+
+      copyStatus.textContent = statusText;
+      setTimeout(() => copyStatus.textContent = "", 2500);
     }
 
     fillDatalist("serverList", SERVER_OPTIONS);
@@ -409,17 +424,14 @@
     conditionSelect.addEventListener("change", generateText);
     reloadButton.addEventListener("click", loadConditions);
 
-    copyButton.addEventListener("click", async () => {
-      try {
-        await navigator.clipboard.writeText(output.value);
-        copyStatus.textContent = "Text wurde kopiert.";
-      } catch (error) {
-        output.select();
-        document.execCommand("copy");
-        copyStatus.textContent = "Text wurde kopiert.";
-      }
+    copyButton.addEventListener("click", () => {
+      copyGeneratedText("Orange Ankündigung wurde kopiert.");
+    });
 
-      setTimeout(() => copyStatus.textContent = "", 1800);
+    openDizzlChatButton.addEventListener("click", async () => {
+      await copyGeneratedText("Orange Ankündigung kopiert. Dizzls Chat wurde geöffnet.");
+      const chatUrl = `https://www.twitch.tv/popout/${encodeURIComponent(DIZZL_CHANNEL)}/chat?popout=`;
+      window.open(chatUrl, "_blank", "noopener,noreferrer,width=520,height=780");
     });
 
     setConditions(FALLBACK_CONDITIONS, "Ersatzliste aktiv. Live-Conditions werden geprüft ...");
